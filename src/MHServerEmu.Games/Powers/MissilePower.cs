@@ -180,7 +180,6 @@ namespace MHServerEmu.Games.Powers
                 else
                 {
                     contextIndex = TotalNumberOfMissilesCreated % contextsLength;
-                    if (contextIndex < 0 || contextIndex >= contextsLength) return MissileCreateResult.Failure;
                     contextProto = contexts[contextIndex];
                 }
 

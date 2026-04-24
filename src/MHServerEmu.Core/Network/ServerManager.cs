@@ -46,7 +46,7 @@ namespace MHServerEmu.Core.Network
         private readonly IGameService[] _services = new IGameService[(int)GameServiceType.NumServiceTypes];
         private readonly Thread[] _serviceThreads = new Thread[(int)GameServiceType.NumServiceTypes];
 
-        private ServerManagerState _state = ServerManagerState.Created;
+        private volatile ServerManagerState _state = ServerManagerState.Created;
 
         public static ServerManager Instance { get; } = new();
 
@@ -71,7 +71,7 @@ namespace MHServerEmu.Core.Network
 
             int index = (int)serviceType;
 
-            if (index < 0 || index >= _services.Length)
+            if ((uint)index >= (uint)_services.Length)
                 throw new ArgumentOutOfRangeException($"Invalid service type [{serviceType}].");
 
             if (_services[index] != null)
@@ -89,7 +89,7 @@ namespace MHServerEmu.Core.Network
         {
             int index = (int)serviceType;
 
-            if (index < 0 || index >= _services.Length)
+            if ((uint)index >= (uint)_services.Length)
                 throw new ArgumentOutOfRangeException($"Invalid service type [{serviceType}].");
 
             if (_services[index] == null)
@@ -107,7 +107,7 @@ namespace MHServerEmu.Core.Network
         {
             int index = (int)serviceType;
 
-            if (index < 0 || index >= _services.Length)
+            if ((uint)index >= (uint)_services.Length)
                 throw new ArgumentOutOfRangeException($"Invalid service type [{serviceType}].");
 
             return _services[index];
@@ -120,7 +120,7 @@ namespace MHServerEmu.Core.Network
         {
             int index = (int)serviceType;
 
-            if (index < 0 || index >= _services.Length)
+            if ((uint)index >= (uint)_services.Length)
                 throw new ArgumentOutOfRangeException($"Invalid service type [{serviceType}].");
 
             IGameService service = _services[index];
@@ -128,6 +128,7 @@ namespace MHServerEmu.Core.Network
             if (service == null)
                 return Logger.WarnReturn(false, $"RouteMessage(): No service is registered for type [{serviceType}]");
 
+#if DEBUG
             switch (service.State)
             {
                 // Treat Starting and ShuttingDown same as Running because services can exchange confirmations during startup / shutdown.
@@ -140,6 +141,7 @@ namespace MHServerEmu.Core.Network
                     Logger.Warn($"Unexpected state [{service.State}] for type [{serviceType}] when sending [{typeof(T).Name}]");
                     break;
             }
+#endif
 
             service.ReceiveServiceMessage(message);
 
@@ -149,7 +151,7 @@ namespace MHServerEmu.Core.Network
         /// <summary>
         /// Runs all registered <see cref="IGameService"/> instances.
         /// </summary>
-        public void RunServices()
+        public async Task RunServicesAsync()
         {
             if (_state != ServerManagerState.Created)
                 throw new InvalidOperationException($"Invalid state {_state} when starting the ServerManager.");
@@ -176,9 +178,9 @@ namespace MHServerEmu.Core.Network
                 _serviceThreads[i].Start();
 
                 while (service.State != GameServiceState.Running)
-                    Thread.Sleep(1);
+                    await Task.Delay(1);
 
-                Logger.Info($"Service for type [{serviceType}] started");                
+                Logger.Info($"Service for type [{serviceType}] started");
             }
 
             _state = ServerManagerState.Running;
@@ -187,7 +189,7 @@ namespace MHServerEmu.Core.Network
         /// <summary>
         /// Shuts down all running <see cref="IGameService"/> instances.
         /// </summary>
-        public void ShutdownServices()
+        public async Task ShutdownServicesAsync()
         {
             // Ignore shutdown requests if already shutting down
             if (_state == ServerManagerState.ShuttingDown)
@@ -212,7 +214,7 @@ namespace MHServerEmu.Core.Network
 
                 if (service.State != GameServiceState.Running)
                 {
-                    Logger.Warn($"ShutdownServices(): Unexpected service state [{service.State}] for type [{serviceType}]");
+                    Logger.Warn($"ShutdownServicesAsync(): Unexpected service state [{service.State}] for type [{serviceType}]");
                     continue;
                 }
 
@@ -221,7 +223,7 @@ namespace MHServerEmu.Core.Network
                 _services[i].Shutdown();
 
                 while (service.State != GameServiceState.Shutdown)
-                    Thread.Sleep(1);
+                    await Task.Delay(1);
 
                 _serviceThreads[i] = null;
 

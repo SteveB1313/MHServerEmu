@@ -65,7 +65,7 @@ namespace MHServerEmu
 
         private ServerApp() { }
 
-        public void Run()
+        public async Task RunAsync()
         {
             // Prevent duplicate runs
             if (_state != State.Created)
@@ -123,7 +123,7 @@ namespace MHServerEmu
             serverManager.RegisterGameService(new FrontendServer(), GameServiceType.Frontend);
             serverManager.RegisterGameService(new WebFrontendService(), GameServiceType.WebFrontend);
 
-            serverManager.RunServices();
+            await serverManager.RunServicesAsync();
 
             // We can't set Live Tuning event message on the Grouping Manager until after we initialize it, so do it here I guess.
             LiveTuningEventScheduler.Instance.SendEventMessageTextToGroupingManager();
@@ -148,9 +148,9 @@ namespace MHServerEmu
         /// <summary>
         /// Shuts down all services and exits the application.
         /// </summary>
-        public void Shutdown()
+        public async Task ShutdownAsync()
         {
-            ServerManager.Instance.ShutdownServices();
+            await ServerManager.Instance.ShutdownServicesAsync();
             _state = State.Shutdown;
         }
 
@@ -204,7 +204,7 @@ namespace MHServerEmu
                 }
 
                 Logger.FatalException(exception, $"MHServerEmu terminating because of unhandled exception, report saved to {crashReportFilePath}");
-                ServerManager.Instance.ShutdownServices();
+                ServerManager.Instance.ShutdownServicesAsync().GetAwaiter().GetResult();
             }
             else
             {

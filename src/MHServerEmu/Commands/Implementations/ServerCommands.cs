@@ -139,7 +139,7 @@ namespace MHServerEmu.Commands.Implementations
 
             // We need to run shutdown as a separate task in case this command is invoked from the game.
             // Otherwise, the game thread is going to break, and we are not going to be able to clean up.
-            Task.Run(() => ServerApp.Instance.Shutdown());
+            Task.Run(() => ServerApp.Instance.ShutdownAsync());
             return string.Empty;
         }
     }

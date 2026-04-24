@@ -32,9 +32,9 @@ namespace MHServerEmu.Games.Powers
         public IReadOnlyList<Condition> ConditionAddList { get => _conditionAddList != null ? _conditionAddList : Array.Empty<Condition>(); }
         public IReadOnlyList<ulong> ConditionRemoveList { get => _conditionRemoveList != null ? _conditionRemoveList : Array.Empty<ulong>(); }
 
-        public bool IsBlocked { get => Flags.HasFlag(PowerResultFlags.Blocked); }
-        public bool IsDodged { get => Flags.HasFlag(PowerResultFlags.Dodged); }
-        public bool IsAvoided { get => Flags.HasFlag(PowerResultFlags.Dodged) || Flags.HasFlag(PowerResultFlags.Unaffected); }
+        public bool IsBlocked { get => TestFlag(PowerResultFlags.Blocked); }
+        public bool IsDodged { get => TestFlag(PowerResultFlags.Dodged); }
+        public bool IsAvoided { get => (Flags & (PowerResultFlags.Dodged | PowerResultFlags.Unaffected)) != PowerResultFlags.None; }
 
         public void Init(ulong powerOwnerId, ulong ultimateOwnerId, ulong targetId, Vector3 powerOwnerPosition,
             PowerPrototype powerProto, AssetId powerAssetRefOverride, bool isHostile)
@@ -85,18 +85,12 @@ namespace MHServerEmu.Games.Powers
 
         public bool HasDamageForClient()
         {
-            foreach (float damage in _damageForClient)
-            {
-                if (damage > 0f)
-                    return true;
-            }
-
-            return false;
+            return _damageForClient[0] > 0f || _damageForClient[1] > 0f || _damageForClient[2] > 0f;
         }
 
         public float GetDamageForClient(DamageType damageType)
         {
-            if (damageType < DamageType.Physical || damageType >= DamageType.NumDamageTypes)
+            if ((uint)damageType >= (uint)DamageType.NumDamageTypes)
                 return 0f;
 
             return _damageForClient[(int)damageType];
@@ -104,15 +98,12 @@ namespace MHServerEmu.Games.Powers
 
         public float GetTotalDamageForClient()
         {
-            float totalDamage = 0f;
-            foreach (float damage in _damageForClient)
-                totalDamage += damage;
-            return totalDamage;
+            return _damageForClient[0] + _damageForClient[1] + _damageForClient[2];
         }
 
         public void SetDamageForClient(DamageType damageType, float value)
         {
-            if (damageType < DamageType.Physical || damageType >= DamageType.NumDamageTypes)
+            if ((uint)damageType >= (uint)DamageType.NumDamageTypes)
                 return;
 
             _damageForClient[(int)damageType] = value;
@@ -176,7 +167,7 @@ namespace MHServerEmu.Games.Powers
 
         public bool ShouldSendToClient()
         {
-            if (GetTotalDamageForClient() > 0f || HealingForClient > 0f)
+            if (HasDamageForClient() || HealingForClient > 0f)
                 return true;
 
             if (HasVisuals())

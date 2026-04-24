@@ -1302,12 +1302,12 @@ namespace MHServerEmu.Games.Powers
             float damageRating = 0f;
 
             Vector3 userPosition = UltimateOwnerId == Entity.InvalidId ? PowerOwnerPosition : UltimateOwnerPosition;
+            float distanceSquared = Vector3.DistanceSquared(userPosition, target.RegionLocation.Position);
 
             foreach (var kvp in Properties.IteratePropertyRange(PropertyEnum.DamageRatingBonusWithinDist))
             {
                 // On the cosmological scale, it's all nearby.
                 Property.FromParam(kvp.Key, 0, out int nearbyThreshold);
-                float distanceSquared = Vector3.DistanceSquared(userPosition, target.RegionLocation.Position);
                 if (distanceSquared > (nearbyThreshold * nearbyThreshold))
                     continue;
 
@@ -1634,7 +1634,7 @@ namespace MHServerEmu.Games.Powers
                     if (powerProto.HasKeyword(keywordProtoRef.As<KeywordPrototype>()) == false)
                         continue;
 
-                    defensePenetration += kvp.Value;
+                    defensePenetration += kwdKdp.Value;
                 }
 
                 // Variable activation time penetration (all powers seem to use ResistancePenetrationZero for this in 1.52)
@@ -1666,7 +1666,7 @@ namespace MHServerEmu.Games.Powers
                     if (powerProto.HasKeyword(keywordProtoRef.As<KeywordPrototype>()) == false)
                         continue;
 
-                    defensePenetrationPct += kvp.Value;
+                    defensePenetrationPct += kwdKdp.Value;
                 }
 
                 // Apply penetration (defense rating cannot become negative)
@@ -1750,13 +1750,13 @@ namespace MHServerEmu.Games.Powers
                             damagePctResistFromPosition = Math.Max(damagePctResistFromPosition, angleKvp.Value);
                     }
 
+                    float distanceSquared = Vector3.DistanceSquared(target.RegionLocation.Position, ownerPosition);
                     foreach (var distanceKvp in target.Properties.IteratePropertyRange(PropertyEnum.DamagePctResistFromDistance))
                     {
                         Property.FromParam(distanceKvp.Key, 0, out int distanceThreshold);
                         if (distanceThreshold <= 0)
                             continue;
 
-                        float distanceSquared = Vector3.DistanceSquared(target.RegionLocation.Position, ownerPosition);
                         if (distanceSquared > (distanceThreshold * distanceThreshold))
                             damagePctResistFromPosition = Math.Max(damagePctResistFromPosition, distanceKvp.Value);
                     }

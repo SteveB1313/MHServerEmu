@@ -795,7 +795,7 @@ namespace MHServerEmu.Games.Powers
             
             summons.Sort((a, b) => a.Id.CompareTo(b.Id));
             if (summons.Count > summonsCount)
-                summons = summons.Take(summonsCount).ToList();
+                summons.RemoveRange(summonsCount, summons.Count - summonsCount);
 
             foreach (var summoned in summons)
                 KillSummoned(summoned, owner);

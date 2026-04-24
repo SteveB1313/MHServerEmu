@@ -2709,12 +2709,14 @@ namespace MHServerEmu.Games.Powers
             PowerPrototype powerProto = Prototype;
             if (powerProto == null) return Logger.WarnReturn(0f, "GetRange(): powerProto == null");
 
-            float range;
+            float range = GetRange(powerProto, Properties, Owner.Properties);
 
-            if (Owner is Avatar avatar && avatar.IsUsingGamepadInput && GetGamepadRange() > 0f)
-                range = GetGamepadRange();
-            else
-                range = GetRange(powerProto, Properties, Owner.Properties);
+            if (Owner is Avatar avatar && avatar.IsUsingGamepadInput)
+            {
+                float gamepadRange = GetGamepadRange();
+                if (gamepadRange > 0f)
+                    range = gamepadRange;
+            }
 
             if (powerProto.PowerCategory == PowerCategoryType.MissileEffect)
                 range = Math.Max(range, Owner.EntityCollideBounds.Radius);
@@ -4218,7 +4220,9 @@ namespace MHServerEmu.Games.Powers
                     if (firstHitEntity != null)
                     {
                         rangeOverride = Vector3.Distance2D(ownerPosition, collisionPosition.Value);
-                        if (Vector3.DistanceSquared(collisionPosition.Value, ownerPosition) < Vector3.DistanceSquared(actualTargetPosition, ownerPosition))
+                        float collisionDistSq = Vector3.DistanceSquared(collisionPosition.Value, ownerPosition);
+                        float targetDistSq = Vector3.DistanceSquared(actualTargetPosition, ownerPosition);
+                        if (collisionDistSq < targetDistSq)
                         {
                             isBlocked = true;
                             actualTargetPosition = collisionPosition.Value;
